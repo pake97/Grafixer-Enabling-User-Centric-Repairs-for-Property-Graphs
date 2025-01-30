@@ -72,8 +72,8 @@ const UploadCSV: React.FC = () => {
             <div className='flex flex-col items-center mt-20 text-center w-[80vw] mb-20'>
                 <h1 className='font-bold text-xl'>GraFixer :Grafixer: Enabling User-Centric Repairs for Property Graphs</h1>
                 <p><strong>Amedeo Pachera </strong> - Lyon1 University, CNRS Liris - Lyon, France - amedeo.pachera@univ-lyon1.fr</p>
-                <p><strong>Angela Bonifati </strong> - Lyon1 University, CNRS Liris& IUF -  Lyon, France - amedeo.pachera@univ-lyon1.fr</p>
-                <p><strong>Andrea Mauri </strong> - Lyon1 University, CNRS Liris - Lyon, France - amedeo.pachera@univ-lyon1.fr</p>
+                <p><strong>Angela Bonifati </strong> - Lyon1 University, CNRS Liris& IUF -  Lyon, France - angela.bonifati@univ-lyon1.fr</p>
+                <p><strong>Andrea Mauri </strong> - Lyon1 University, CNRS Liris - Lyon, France - andrea.mauri@univ-lyon1.fr</p>
             </div>
         </div>
     );
