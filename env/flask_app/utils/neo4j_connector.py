@@ -2,7 +2,7 @@
 
 uri = "bolt://localhost:7687"  
 user = "neo4j"                 
-password = "AmePake97"          
+password = "password"          
 
 import pandas as pd
 import datetime
@@ -13,7 +13,7 @@ from neomodel.integration.pandas import to_dataframe, to_series
 import subprocess
 import os
 
-config.DATABASE_URL = "bolt://neo4j:AmePake97@localhost:7687/neo4j"
+config.DATABASE_URL = "bolt://neo4j:password@localhost:7687/neo4j"
 
 
 class Violation(StructuredNode):
