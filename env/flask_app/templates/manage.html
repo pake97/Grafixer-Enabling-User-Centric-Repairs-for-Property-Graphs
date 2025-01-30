@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .context-menu {
+            position: absolute;
+            display: none;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 5px;
+        }
+        .context-menu div {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .context-menu div:hover {
+            background-color: #eee;
+        }
+    </style>
+  <!-- unpkg CDN non-minified -->
+<script src="https://unpkg.com/neo4j-driver"></script>
+<!-- unpkg CDN minified for production use, version X.Y.Z -->
+<script src="https://unpkg.com/neo4j-driver@5.4.0/lib/browser/neo4j-web.min.js"></script>
+  <!-- Add default CSS reference -->
+<link rel="stylesheet" href="https://unpkg.com/popoto/dist/popoto.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/popoto/dist/popoto.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+  <!-- Header Menu -->
+  <header class="bg-white shadow-md">
+    <div class="container mx-auto p-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Admin Management</h1>
+      <nav>
+        <button id="usersTab" class="px-4 py-2 font-semibold hover:bg-blue-100 rounded">Users</button>
+        <button id="constraintsTab" class="px-4 py-2 font-semibold hover:bg-blue-100 rounded">Constraints</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto p-8">
+    <!-- Users Section -->
+    <section id="usersSection" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">Manage Users</h2>
+
+      <!-- Add User Form -->
+      <form id="addUserForm" class="mb-4">
+        <label class="block text-lg font-semibold mb-2">Add User</label>
+        <input type="text" id="newUsername" placeholder="Username" class="p-2 border rounded w-full">
+        <button type="button" onclick="addUser()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">Add User</button>
+      </form>
+
+      <!-- Users List -->
+      <div id="userList" class="space-y-4">
+        <!-- JavaScript will populate this list with divs for each user -->
+      </div>
+    </section>
+
+    <!-- Constraints Section (content not displayed in this example) -->
+    <section id="constraintsSection" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">Manage Constraints</h2>
+      
+      <div class="flex mb-4 border-b">
+        <button id="cypherTab" class="tab-button px-4 py-2 font-semibold border-b-2 border-transparent hover:border-blue-500">Cypher Query</button>
+        <button id="naturalLanguageTab" class="tab-button px-4 py-2 font-semibold border-b-2 border-transparent hover:border-green-500">Natural Language</button>
+        <button id="drawTab" class="tab-button px-4 py-2 font-semibold border-b-2 border-transparent hover:border-green-500">Draw Pattern</button>
+        <button id="fileUploadTab" class="tab-button px-4 py-2 font-semibold border-b-2 border-transparent hover:border-yellow-500">Upload File</button>
+        <button id="testTab" class="tab-button px-4 py-2 font-semibold border-b-2 border-transparent hover:border-yellow-500">Test</button>
+      </div>
+
+      <!-- Tab Content -->
+      <div>
+        <!-- Cypher Query Content -->
+        <div id="cypherContent" class="tab-content hidden">
+          <h3 class="font-semibold mb-2">Enter a Cypher Query</h3>
+          <textarea id="cypherQueryInput" rows="3" placeholder="Enter Cypher query..." class="p-2 border rounded w-full"></textarea>
+          <button onclick="addCypherConstraint()" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">Add Cypher Query</button>
+        </div>
+
+        <!-- Natural Language Content -->
+        <div id="naturalLanguageContent" class="tab-content hidden">
+          <h3 class="font-semibold mb-2">Enter a Constraint in Natural Language</h3>
+          <textarea id="naturalLanguageInput" rows="3" placeholder="Describe the constraint..." class="p-2 border rounded w-full"></textarea>
+          <button onclick="translateToCypher()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700">Translate and Add</button>
+        </div>
+
+
+
+        <div id="drawContent" class="tab-content hidden">
+          <h3 class="font-semibold mb-2">Draw constraint</h3>
+          <div id="popoto-graph" class="ppt-div-graph" style="height: 800px!important;">
+            <!-- Graph is generated here -->
+        </div>
+    
+        <!-- By default the query viewer is generated on the HTML element with ID "popoto-query"
+         If needed this id can be modified with property "popoto.queryviewer.containerId" -->
+    
+        <div id="popoto-cypher" class="ppt-container-query">
+            <!-- Query viewer is generated here -->
+        </div>
+
+        <div id="popoto-query" class="ppt-container-query">
+          <!-- Query viewer is generated here -->
+      </div>
+        </div>
+
+
+        <!-- File Upload Content -->
+        <div id="fileUploadContent" class="tab-content hidden">
+          <h3 class="font-semibold mb-2">Upload a File Containing Constraints</h3>
+          <input type="file" id="constraintFileInput" class="p-2 border rounded w-full">
+          <button onclick="uploadConstraintFile()" class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-700">Upload File</button>
+        </div>
+
+        <div id="testContent" class="tab-content hidden">
+         
+        </div>
+
+      </div>
+
+      <!-- Constraints List -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-2">Current Constraints</h3>
+        <ul id="constraintList" class="list-disc ml-4 space-y-2">
+          <!-- JavaScript will populate this list -->
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- QR Code Popup -->
+  <div id="qrPopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg text-center relative">
+      <button onclick="closePopup()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">&times;</button>
+      <h3 class="text-lg font-semibold mb-4">QR Code</h3>
+      <div id="qrcode"></div>
+    </div>
+  </div>
+
+  <script>
+    
+    const usersTab = document.getElementById('usersTab');
+    const constraintsTab = document.getElementById('constraintsTab');
+    const usersSection = document.getElementById('usersSection');
+    const constraintsSection = document.getElementById('constraintsSection');
+    const userList = document.getElementById('userList');
+    const qrPopup = document.getElementById('qrPopup');
+    const qrcodeContainer = document.getElementById('qrcode');
+    const constraintList = document.getElementById('constraintList');
+
+    // Show Users section by default
+    function showSection(section) {
+      usersSection.classList.add('hidden');
+      constraintsSection.classList.add('hidden');
+      section.classList.remove('hidden');
+    }
+    usersTab.addEventListener('click', () => showSection(usersSection));
+    constraintsTab.addEventListener('click', () => showSection(constraintsSection));
+    showSection(usersSection);
+
+    const constraints = [];
+
+// Show or Hide Tab Content
+function showTabContent(tab) {
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+  document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('border-blue-500', 'border-green-500', 'border-yellow-500'));
+
+  tab.classList.remove('hidden');
+  if(tab===document.getElementById('drawContent')){
+    var driver = neo4j.driver(
+        "bolt://localhost:7687",
+        neo4j.auth.basic("neo4j", "AmePake97"),
+    );
+
+    popoto.runner.DRIVER = driver
+
+    // Define the list of label provider to customize the graph behavior:
+    // Only two labels are used in Neo4j movie graph example: "Movie" and "Person"
+    popoto.provider.node.Provider = {
+        "Character": {
+            "returnAttributes": ["name", "height", ],
+            "constraintAttribute": "name"
+        },
+        "Film": {
+            "returnAttributes": ["title", "episode_id", "director", "producer", "release_date"],
+            "constraintAttribute": "title"
+        },
+        "Species": {
+            "returnAttributes": ["name"],
+            "constraintAttribute": "name"
+        },
+        "Starship": {
+            "returnAttributes": ["name", "model"],
+            "constraintAttribute": "name"
+        },
+        "Vehicle": {
+            "returnAttributes": ["name", "model"],
+            "constraintAttribute": "name"
+        },
+        "Planet": {
+            "returnAttributes": ["name", "gravity"],
+            "constraintAttribute": "name"
+        }
+    };
+
+    
+
+    driver.verifyConnectivity().then(function () {
+        // Start the generation using parameter as root label of the query.
+        popoto.start("Character");
+        console.log(popoto.graph)
+    }).catch(function (error) {
+        document.getElementById("modal").style.display = "block";
+        document.getElementById("error-content").innerText = error;
+        console.error(error)
+    })
+  }
+}
+
+
+    // Initialize Tab Buttons for Constraints
+    document.getElementById('cypherTab').addEventListener('click', () => showTabContent(document.getElementById('cypherContent')));
+    document.getElementById('naturalLanguageTab').addEventListener('click', () => showTabContent(document.getElementById('naturalLanguageContent')));
+    document.getElementById('fileUploadTab').addEventListener('click', () => showTabContent(document.getElementById('fileUploadContent')));
+    document.getElementById('drawTab').addEventListener('click', () => showTabContent(document.getElementById('drawContent')));
+    document.getElementById('testTab').addEventListener('click', () => showTabContent(document.getElementById('testContent')));
+
+    // Show Cypher Query tab by default
+    showTabContent(document.getElementById('cypherContent'));
+
+
+    const users = [];
+
+    // Functions to manage users
+    async function addUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      if (username && !users.includes(username)) {
+        users.push(username);
+        await updateUserList();
+        document.getElementById('newUsername').value = '';
+      }
+    }
+
+    async function removeUser(username) {
+      const index = users.indexOf(username);
+      if (index !== -1) {
+        users.splice(index, 1);
+        await updateUserList();
+      }
+    }
+    
+    async function updateUserList() {
+  // Clear the current user list
+  userList.innerHTML = '';
+
+  try {
+    // Make an API call to get the list of users
+    const response = await fetch('/get_users');
+    
+    // Check if the response is OK
+    if (response.ok) {
+      const users = await response.json(); // Parse the JSON data
+      
+      // Loop through the users and add each one to the list
+      users.forEach(item => {
+        const username = item.username; // Assuming the API returns "username" field
+
+        // Create user div
+        const userDiv = document.createElement('div');
+        userDiv.classList.add('flex', 'justify-between', 'items-center', 'p-4', 'border', 'rounded', 'bg-white');
+
+        // Username display
+        const usernameText = document.createElement('span');
+        usernameText.textContent = username;
+        userDiv.appendChild(usernameText);
+
+        // Create button wrapper div
+        const buttonWrapper = document.createElement('div');
+
+        // Generate QR Code button
+        const qrBtn = document.createElement('button');
+        qrBtn.textContent = "Generate QR Code";
+        qrBtn.classList.add('bg-blue-500', 'text-white', 'px-3', 'py-1', 'ml-2', 'rounded', 'hover:bg-blue-700');
+        qrBtn.onclick = () => showQrPopup(username);
+        buttonWrapper.appendChild(qrBtn);
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = "Remove";
+        removeBtn.classList.add('bg-red-500', 'text-white', 'px-3', 'py-1', 'rounded', 'hover:bg-red-700');
+        removeBtn.onclick = () => removeUser(username);
+        buttonWrapper.appendChild(removeBtn);
+
+        // Append buttons to user div and user div to userList
+        userDiv.appendChild(buttonWrapper);
+        userList.appendChild(userDiv);
+      });
+    } else {
+      console.error('Failed to fetch users: ', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error fetching users: ', error);
+  }
+}
+
+
+    function showQrPopup(username) {
+      // Clear previous QR code if exists
+      qrcodeContainer.innerHTML = '';
+
+      // Generate a new QR code with the user's link
+      const url = `https://example.com/user/${encodeURIComponent(username)}`;
+      new QRCode(qrcodeContainer, {
+        text: url,
+        width: 200,
+        height: 200
+      });
+
+      // Show the popup
+      qrPopup.classList.remove('hidden');
+    }
+
+    function closePopup() {
+      qrPopup.classList.add('hidden');
+    }
+
+    async function addCypherConstraint() {
+      const query = document.getElementById('cypherQueryInput').value.trim();
+      if (query) {
+        constraints.push(query);
+        await updateConstraintList();
+        document.getElementById('cypherQueryInput').value = '';
+      }
+    }
+
+    // Translate Natural Language to Cypher using OpenAI API
+    async function translateToCypher() {
+      const naturalLanguageConstraint = document.getElementById('naturalLanguageInput').value.trim();
+      if (!naturalLanguageConstraint) return;
+
+      try {
+        const response = await fetch('/translate-to-cypher', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ constraint: naturalLanguageConstraint })
+        });
+
+        const data = await response.json();
+        if (data.cypherQuery) {
+          constraints.push(data.cypherQuery);
+          updateConstraintList();
+          document.getElementById('naturalLanguageInput').value = '';
+        } else {
+          alert("Failed to translate to Cypher");
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert("Error translating to Cypher");
+      }
+    }
+
+    // Upload Constraint File
+    async function uploadConstraintFile() {
+      const fileInput = document.getElementById('constraintFileInput');
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a file");
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const lines = event.target.result.split('\n');
+        lines.forEach(line => {
+          const trimmedLine = line.trim();
+          if (trimmedLine) constraints.push(trimmedLine);
+        });
+        updateConstraintList();
+      };
+      reader.readAsText(file);
+    }
+
+    async function updateConstraintList() {
+  // Clear the current list
+  constraintList.innerHTML = '';
+
+  try {
+    // Make an API call to get the list of constraints
+    const response = await fetch('/get_constraints');
+    
+    // Check if the response is OK
+    if (response.ok) {
+      const constraints = await response.json(); // Parse the JSON data
+      
+      // Loop through the constraints and add each one to the list
+      constraints.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.constraint_text; // Assuming the API returns "constraint_text" field
+        constraintList.appendChild(li);
+      });
+    } else {
+      console.error('Failed to fetch constraints: ', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error fetching constraints: ', error);
+  }
+}
+
+
+
+
+
+class NetworkGraph {
+            constructor(containerId, width, height) {
+                this.width = width;
+                this.height = height;
+                this.nodes = [];
+
+                // Create SVG canvas
+                this.svg = d3.select(containerId)
+                    .append("svg")
+                    .attr("width", this.width)
+                    .attr("height", this.height)
+                    .style("border", "1px solid black")
+                    .on("contextmenu", (event) => this.showContextMenu(event));
+
+                // Create a context menu
+                this.createContextMenu();
+
+                // Create a force simulation
+                this.simulation = d3.forceSimulation(this.nodes)
+                    .force("charge", d3.forceManyBody().strength(-100))
+                    .force("center", d3.forceCenter(this.width / 2, this.height / 2))
+                    .force("collision", d3.forceCollide(30))
+                    .on("tick", () => this.updateGraph());
+            }
+
+            createContextMenu() {
+                this.contextMenu = d3.select("body")
+                    .append("div")
+                    .attr("class", "context-menu");
+
+                // Add options to the context menu
+                const labels = ["Node A", "Node B", "Node C"];
+                labels.forEach(label => {
+                    this.contextMenu.append("div")
+                        .text(label)
+                        .on("click", () => this.addNode(label));
+                });
+
+                // Hide the menu when clicking elsewhere
+                d3.select("body").on("click", () => this.hideContextMenu());
+            }
+
+            showContextMenu(event) {
+                event.preventDefault();
+
+                this.contextMenu
+                    .style("left", `${event.pageX}px`)
+                    .style("top", `${event.pageY}px`)
+                    .style("display", "block");
+
+                this.clickPosition = { x: event.offsetX, y: event.offsetY };
+            }
+
+            hideContextMenu() {
+                this.contextMenu.style("display", "none");
+            }
+
+            addNode(label) {
+                this.hideContextMenu();
+
+                const newNode = {
+                    id: this.nodes.length,
+                    label: label,
+                    x: this.clickPosition.x,
+                    y: this.clickPosition.y
+                };
+
+                this.nodes.push(newNode);
+
+                this.simulation.nodes(this.nodes);
+                this.simulation.alpha(1).restart();
+
+                this.updateGraph();
+            }
+
+            deleteNode(node) {
+                // Remove the node from the nodes array
+                this.nodes = this.nodes.filter(n => n.id !== node.id);
+
+                this.simulation.nodes(this.nodes);
+                this.simulation.alpha(1).restart();
+
+                this.updateGraph();
+            }
+
+            updateGraph() {
+                // Bind nodes
+                const nodeSelection = this.svg.selectAll("circle").data(this.nodes, d => d.id);
+
+                // Enter new nodes
+                nodeSelection.enter()
+                    .append("circle")
+                    .attr("r", 15)
+                    .attr("fill", "steelblue")
+                    .on("dblclick", (event, d) => this.deleteNode(d)) // Double-click event to delete node
+                    .merge(nodeSelection)
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                // Exit old nodes
+                nodeSelection.exit().remove();
+
+                // Bind labels
+                const labelSelection = this.svg.selectAll("text").data(this.nodes, d => d.id);
+
+                // Enter new labels
+                labelSelection.enter()
+                    .append("text")
+                    .attr("font-size", "12px")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", 4)
+                    .merge(labelSelection)
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y)
+                    .text(d => d.label);
+
+                // Exit old labels
+                labelSelection.exit().remove();
+            }
+        }
+
+        // Initialize the graph
+        const graph = new NetworkGraph("#testContent", 800, 600);
+    
+  </script>
+
+</body>
+</html>

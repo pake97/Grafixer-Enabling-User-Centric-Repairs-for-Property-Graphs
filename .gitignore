@@ -1,0 +1,43 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+Dashboard/node_modules
+Dashboard/.pnp
+Dashboard/.pnp.js
+
+
+
+# next.js
+Dashboard/.next/
+Dashboard/out/
+Dashboard/.idea/
+
+
+# production
+Dashboard/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+Dashboard/npm-debug.log*
+Dashboard/yarn-debug.log*
+Dashboard/yarn-error.log*
+Dashboard/.pnpm-debug.log*
+
+# local env files
+Dashboard/.env
+Dashboard/.env*.local
+
+# vercel
+Dashboard/.vercel
+
+# typescript
+Dashboard/*.tsbuildinfo
+/env/bin/
+/env/include/
+/env/lib/
+/env/pyvenv.cfg
+/env/flask_app/flask_session
+

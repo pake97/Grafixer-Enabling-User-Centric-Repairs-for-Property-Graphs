@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script
+  type="text/javascript"
+  src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+></script>
+<style type="text/css">
+  #mynetwork {
+    width: 100%;
+    height: 500px;
+  }
+</style>
+
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-8 text-center">Admin Dashboard</h1>
+
+    <!-- CSV Upload Form -->
+    <form id="uploadForm" enctype="multipart/form-data" class="mb-4">
+        <label class="block text-lg font-semibold mb-2">Upload CSV File</label>
+        <div class="flex items-center justify-center gap-2"><input type="file" name="file" id="fileInput" class="p-2 border rounded w-full">
+        <button type="submit" class=" bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">Upload</button></div>
+      </form>
+  
+      <div id="message" class="mt-4 text-center"></div>
+      <div id="mynetwork"></div>
+      <button id="manageButton" class="hidden bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-700">Manage</button>
+    </div>
+  
+    <script>
+      document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        const formData = new FormData();
+        const fileInput = document.getElementById('fileInput');
+        
+        if (fileInput.files.length === 0) {
+          document.getElementById('message').innerText = 'No file selected';
+          return;
+        }
+        
+        formData.append('file', fileInput.files[0]);
+  
+        // Send AJAX request to upload CSV and receive parsed data
+        fetch('/upload', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('message').innerText = data.error;
+          } else {
+            document.getElementById('message').innerText = data.message;
+            console.log("Parsed Data:", data.parsed_data);  // Print parsed data to console
+            var node_labels = data.parsed_data.node_labels
+            var edge_labels = data.parsed_data.edge_labels
+
+
+            // Arrays to store edges and nodes
+        const edge_list = [];
+        const node_list = [];
+
+        // Map to assign unique IDs to node labels
+        const nodeIdMap = {};
+        let currentId = 1;
+
+        // Populate nodi array from node_labels
+        node_labels.forEach(label => {
+        const id = currentId++; // Assign unique ID
+        nodeIdMap[label] = id; // Map label to ID
+
+        // Create node object with empty properties for now (customize as needed)
+        node_list.push({
+            id: id,
+            label: label,
+            title: "{}" // No properties specified; customize as needed
+        });
+        });
+
+        // Populate edges array from edge_labels
+        edge_labels.forEach(edge => {
+        const [relationship, fromLabel, toLabel] = edge.split(',');
+
+        // Get the node IDs from nodeIdMap
+        const fromId = nodeIdMap[fromLabel];
+        const toId = nodeIdMap[toLabel];
+
+        // Push edge to edges array
+        edge_list.push({
+            from: fromId,
+            to: toId,
+            label: relationship
+        });
+        });
+        // create an array with nodes
+
+        var nodes = new vis.DataSet(
+            node_list
+        );
+
+        // create an array with edges
+        var edges = new vis.DataSet(
+            edge_list
+        );
+
+        // create a network
+        var container = document.getElementById("mynetwork");
+        var data = {
+          nodes: nodes,
+          edges: edges,
+        };
+        var options = {nodes: {shape: "box"}, mass:10, margin:2, fixed:false};
+        var network = new vis.Network(container, data, options);
+        document.getElementById('manageButton').classList.remove('hidden');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('message').innerText = 'An error occurred';
+        });
+      });
+    </script>
+<script>
+     document.getElementById('manageButton').addEventListener('click', function() {
+        window.location.href = '/manage';
+    });    
+</script>
+</body>
+</html>
