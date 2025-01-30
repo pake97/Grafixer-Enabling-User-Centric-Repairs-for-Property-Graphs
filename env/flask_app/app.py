@@ -20,7 +20,7 @@ import json
 app = Flask(__name__)
 #global_constraints = ["MATCH (a:Character)-[p:PILOT {deleted:false}]->(b:Starship)-[r:APPEARED_IN {deleted:false}] ->(c:Film) WHERE not (a)-[:APPEARED_IN {deleted:false}]->(c) Return [id(a),id(b),id(c)] as node_ids, [id(r),id(p)] as rel_ids","MATCH (a:Character)-[p:PILOT {deleted:false}]->(b:Vehicle)-[r:APPEARED_IN {deleted:false}] ->(c:Film) WHERE not (a)-[:APPEARED_IN {deleted:false}]->(c) Return [id(a),id(b),id(c)] as node_ids, [id(r),id(p)] as rel_ids","MATCH (a:Species)<-[p:OF {deleted:false}]-(b:Character)-[r:PILOT {deleted:false}]->(c:Starship) WHERE a.average_height>c.height Return [id(a),id(b),id(c)] as node_ids, [id(r),id(p)] as rel_ids"]
 global_constraints = {}
-app.secret_key = 'supersecretkey'  # For session management, change this for production
+
 neo4jConnector = Neo4jConnector()
 app.config['SESSION_TYPE'] = 'filesystem'
 
